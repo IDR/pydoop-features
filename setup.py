@@ -1,6 +1,8 @@
 # BEGIN_COPYRIGHT
 #
-# Copyright (C) 2014-2016 CRS4.
+# Copyright (C) 2014-2017 Open Microscopy Environment:
+#   - University of Dundee
+#   - CRS4
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy
@@ -40,7 +42,7 @@ CLASSIFIERS = [
 
 
 def build_java():
-    sp.check_call(["mvn", "clean", "compile", "assembly:single"])
+    sp.check_call(["mvn", "-B", "clean", "compile", "assembly:single"])
 
 
 def write_schema_module():

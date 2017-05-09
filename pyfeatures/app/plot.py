@@ -1,6 +1,8 @@
 # BEGIN_COPYRIGHT
 #
-# Copyright (C) 2014-2016 CRS4.
+# Copyright (C) 2014-2017 Open Microscopy Environment:
+#   - University of Dundee
+#   - CRS4
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy
@@ -32,8 +34,6 @@ import cPickle
 import shelve
 import warnings
 from contextlib import closing
-
-import matplotlib.pyplot as plt
 
 try:
     from pyavroc import AvroFileReader
@@ -97,6 +97,7 @@ def get_data(fn, axis, feature=None, x=None, y=None):
 
 
 def plot_data(data, axis, out_dir, logger):
+    import matplotlib.pyplot as plt
     other_axes = [_ for _ in AXES if _ != axis]
     for k1, v1 in data.iteritems():
         logger.debug("%r = %r", other_axes, k1)

@@ -1,6 +1,8 @@
 # BEGIN_COPYRIGHT
 #
-# Copyright (C) 2014-2016 CRS4.
+# Copyright (C) 2014-2017 Open Microscopy Environment:
+#   - University of Dundee
+#   - CRS4
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy
@@ -22,8 +24,6 @@ visual representation of the resulting coverage.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 from pyfeatures.feature_calc import gen_tiles
 
@@ -41,6 +41,10 @@ def add_parser(subparsers):
     parser.add_argument("-H", type=int, metavar="INT", help="tile height")
     parser.add_argument("-x", type=int, metavar="INT", help="tile x-distance")
     parser.add_argument("-y", type=int, metavar="INT", help="tile y-distance")
+    parser.add_argument("--offset-x", type=int, metavar="INT",
+                        help="tile initial x-offset")
+    parser.add_argument("--offset-y", type=int, metavar="INT",
+                        help="tile initial y-offset")
     parser.add_argument('-o', '--out-fn', metavar='FILE', default="tiles.png",
                         help="output file (extension = img format)")
     parser.set_defaults(func=run)
@@ -48,6 +52,9 @@ def add_parser(subparsers):
 
 
 def run(logger, args, extra_argv=None):
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
     img_array = np.zeros((args.iH, args.iW), dtype="i1")
     fig = plt.figure()
     ax = fig.add_subplot(111, aspect='equal')
@@ -56,7 +63,8 @@ def run(logger, args, extra_argv=None):
     my = max(1, .05 * args.iH)
     ax.axis([-mx, args.iW + mx, -my, args.iH + my])
     for i, j, tile in gen_tiles(img_array, w=args.W, h=args.H,
-                                dx=args.x, dy=args.y):
+                                dx=args.x, dy=args.y,
+                                ox=args.offset_x, oy=args.offset_y):
         h, w = tile.shape
         ax.add_patch(patches.Rectangle((j, i), w, h, alpha=TILE_ALPHA))
         logger.debug("%r", (j, i, w, h))

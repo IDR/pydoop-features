@@ -1,6 +1,8 @@
 # BEGIN_COPYRIGHT
 #
-# Copyright (C) 2014-2016 CRS4.
+# Copyright (C) 2014-2017 Open Microscopy Environment:
+#   - University of Dundee
+#   - CRS4
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy
@@ -90,6 +92,11 @@ class TestGenTiles(unittest.TestCase):
              [(0, 3, 0, 8)]),
             ({'w': None, 'h': 3, 'dx': None, 'dy': 100},
              [(0, 3, 0, 8)]),
+            # --
+            ({'w': None, 'h': 3, 'dx': None, 'dy': 1, 'ox': None, 'oy': 1},
+             [(1, 4, 0, 8), (2, 5, 0, 8), (3, 6, 0, 8)]),
+            ({'w': 6, 'h': 4, 'dx': W, 'dy': H, 'ox': 1, 'oy': 1},
+             [(1, 5, 1, 7)]),
         ]
 
     def runTest(self):

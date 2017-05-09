@@ -1,5 +1,25 @@
 #!/usr/bin/env python
 
+# BEGIN_COPYRIGHT
+#
+# Copyright (C) 2016-2017 Open Microscopy Environment:
+#   - University of Dundee
+#   - CRS4
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy
+# of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# END_COPYRIGHT
+
 """\
 Convert avro file into an OMERO.features OMERO.tables HDF5 file.
 
@@ -38,6 +58,16 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'mapping', help='Mapping of OMERO IDs to avro records (tsv)')
+    parser.add_argument(
+        '--re-pattern', default='.*', help=(
+            'Match a substring of the avro name against the mapping file, '
+            'e.g. "^[A-Za-z0-9]" to ignore everything after an '
+            'alpha-numeric prefix.'))
+    parser.add_argument(
+        '--re-match', help=(
+            'Match a replacement pattern based on --re-pattern. '
+            'E.g. "\1-\2" to match two pattern groups joined with "-". '
+            'Default is to match the whole pattern.'))
     parser.add_argument(
         'output', help='Output OMERO.features file (append if exists)')
     parser.add_argument('inputs', nargs='+', help='Input avro files')
@@ -106,13 +136,15 @@ exclude_fields = (
 )
 
 
-def convert_avro(f, omero_ids, id_fields, expected_features):
+def convert_avro(
+        f, omero_ids, id_fields, expected_features, repattern, rematch):
     """
     f: File handle to the input file
     omero_ids: Maps of plate-series to OMERO IDs
     id_fields: A list of ID columns: [(NameID, Type)]
     expected_features: The list of expected features, if empty this will be
     populated by the first avro record
+    repattern, rematch: Match map screen name against a regular expression
     """
     cols = []
     a = AvroFileReader(f)
@@ -149,7 +181,11 @@ def convert_avro(f, omero_ids, id_fields, expected_features):
 
         for c in cols:
             if c.name.endswith('ID'):
-                oid = omero_ids[c.name][r['name']]
+                if rematch:
+                    rname = re.sub(repattern, rematch, r['name'])
+                else:
+                    rname = re.search(repattern, r['name']).group(0)
+                oid = omero_ids[c.name][rname]
                 c.values.append(oid)
             else:
                 c.values.append(r[c.name])
@@ -168,7 +204,9 @@ def main(argv):
         with open(avroin) as f:
             print 'Converting %s' % avroin
             init_needed = not os.path.exists(fileout)
-            cols = convert_avro(f, omero_ids, id_fields, expected_features)
+            cols = convert_avro(
+                f, omero_ids, id_fields, expected_features,
+                args.re_pattern, args.re_match)
             t = omero.tables.HDFLIST.getOrCreate(fileout)
             if init_needed:
                 t.initialize(cols)
