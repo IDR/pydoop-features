@@ -23,7 +23,7 @@ RUN bash -ic "python setup.py install"
 RUN yum -y install tkinter
 
 RUN useradd -m features
-ARG OMEGO_OPTS --release=0.3.7 --downloadurl=https://downloads.openmicroscopy.org/idr
+ARG OMEGO_OPTS="--release=0.3.7 --downloadurl=https://downloads.openmicroscopy.org/idr"
 RUN /opt/omero/omego/bin/omego download py --sym OMERO.py $OMEGO_OPTS
 
 RUN printf 'PATH=$PATH:/build/OMERO.py/bin\n' > /etc/profile.d/omero.sh && \
