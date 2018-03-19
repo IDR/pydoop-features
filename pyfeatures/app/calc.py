@@ -30,6 +30,7 @@ import sys
 import os
 import warnings
 import errno
+from argparse import ArgumentTypeError
 
 try:
     from pyavroc import AvroFileReader, AvroFileWriter
@@ -42,6 +43,34 @@ from pyfeatures.feature_calc import calc_features, to_avro
 from pyfeatures.schema import Signatures as out_schema
 
 
+def get_image_size(fin):
+    reader = AvroFileReader(fin)
+    r = reader.next()
+    size_map = dict(zip(r['dimension_order'], r['pixel_data']['shape']))
+    return tuple(size_map[_] for _ in 'ZCT')
+
+
+def get_subsets(args):
+    def from_end_if_neg(sizei, i):
+        if i < 0:
+            return sizei + i
+        return i
+
+    # Getting the ZCT size is expensive, only fetch if necessary
+    if any((i < 0) for i in
+           args.zsubset.union(args.csubset).union(args.tsubset)):
+        with open(args.in_fn) as fin:
+            sizez, sizec, sizet = get_image_size(fin)
+        zsubset = [from_end_if_neg(sizez, z) for z in args.zsubset]
+        csubset = [from_end_if_neg(sizec, c) for c in args.csubset]
+        tsubset = [from_end_if_neg(sizet, t) for t in args.tsubset]
+    else:
+        zsubset = args.zsubset
+        csubset = args.csubset
+        tsubset = args.tsubset
+    return zsubset, csubset, tsubset
+
+
 def run(logger, args, extra_argv=None):
     try:
         os.makedirs(args.out_dir)
@@ -51,12 +80,19 @@ def run(logger, args, extra_argv=None):
     tag, ext = os.path.splitext(os.path.basename(args.in_fn))
     out_fn = os.path.join(args.out_dir, '%s_features%s' % (tag, ext))
     logger.info('writing to %s', out_fn)
+    zsubset, csubset, tsubset = get_subsets(args)
     with open(out_fn, 'w') as fout:
         writer = AvroFileWriter(fout, out_schema)
         with open(args.in_fn) as fin:
             reader = AvroFileReader(fin)
             for r in reader:
                 p = BioImgPlane(r)
+                if zsubset and p.z not in zsubset:
+                    continue
+                if csubset and p.c not in csubset:
+                    continue
+                if tsubset and p.t not in tsubset:
+                    continue
                 pixels = p.get_xy()
                 logger.info('processing %r', [p.z, p.c, p.t])
                 kw = {
@@ -75,6 +111,13 @@ def run(logger, args, extra_argv=None):
                     writer.write(out_rec)
         writer.close()
     return 0
+
+
+def int_set(s):
+    try:
+        return set(int(_) for _ in s.split(","))
+    except ValueError as e:
+        raise ArgumentTypeError(e.message)
 
 
 def add_parser(subparsers):
@@ -96,5 +139,14 @@ def add_parser(subparsers):
                         help="horizontal offset of first tile (default 0)")
     parser.add_argument("--offset-y", type=int, metavar="INT",
                         help="vertical offset of first tile (default 0)")
+    parser.add_argument("-z", "--zsubset", type=int_set, metavar="INT,INT,...",
+                        default=set(),
+                        help="process only planes with these Z coordinates")
+    parser.add_argument("-c", "--csubset", type=int_set, metavar="INT,INT,...",
+                        default=set(),
+                        help="process only planes with these C coordinates")
+    parser.add_argument("-t", "--tsubset", type=int_set, metavar="INT,INT,...",
+                        default=set(),
+                        help="process only planes with these T coordinates")
     parser.set_defaults(func=run)
     return parser
